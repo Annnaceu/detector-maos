@@ -2,21 +2,36 @@ import numpy as np
 import cv2
 import mediapipe as mp
 import joblib
-import math
 
 # Carregar o modelo treinado
-modelo = joblib.load('modelo_maos_bola.pkl')
+try:
+    modelo = joblib.load('modelo_bolinha.pkl')
+except FileNotFoundError:
+    print("Modelo não encontrado. Certifique-se de que 'modelo_bolinha.pkl' está no diretório correto.")
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
-hands = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.85, min_tracking_confidence=0.7)
+hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.85, min_tracking_confidence=0.7)
 
 cap = cv2.VideoCapture(0)
 
-def distancia(p1, p2):
-    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+def contar_dedos(hand_landmarks):
+    dedos_levantados = 0
+    landmarks = hand_landmarks.landmark
 
-simulacao_bola = (320, 240)  # Centro da bola fictícia na tela
+    if landmarks[mp_hands.HandLandmark.THUMB_TIP].x > landmarks[mp_hands.HandLandmark.THUMB_IP].x:
+        dedos_levantados += 1
+
+    dedos = [mp_hands.HandLandmark.INDEX_FINGER_TIP, mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
+             mp_hands.HandLandmark.RING_FINGER_TIP, mp_hands.HandLandmark.PINKY_TIP]
+    juntas = [mp_hands.HandLandmark.INDEX_FINGER_PIP, mp_hands.HandLandmark.MIDDLE_FINGER_PIP,
+              mp_hands.HandLandmark.RING_FINGER_PIP, mp_hands.HandLandmark.PINKY_PIP]
+
+    for dedo_tip, junta_pip in zip(dedos, juntas):
+        if landmarks[dedo_tip].y < landmarks[junta_pip].y:
+            dedos_levantados += 1
+
+    return dedos_levantados
 
 while True:
     ret, frame = cap.read()
@@ -28,29 +43,23 @@ while True:
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(frame, hand_landmarks)
+            dedos_levantados = contar_dedos(hand_landmarks)
 
-            h, w, _ = frame.shape
-            dedo_indicador = hand_landmarks.landmark[8]
-            pos_dedo = (int(dedo_indicador.x * w), int(dedo_indicador.y * h))
-
-            # Simular a detecção da bolinha azul
-            dist = distancia(pos_dedo, simulacao_bola)
-            status_bola = 1 if dist < 50 else 0
-
-            # Extrair características e prever com o modelo
+            # Extrair características para prever a bolinha
             features = np.array([[landmark.x, landmark.y, landmark.z] for landmark in hand_landmarks.landmark]).flatten()
             status_predito = modelo.predict([features])[0]
 
-            if status_predito == 1:
-                cv2.putText(frame, 'Bola Pega!', (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            else:
-                cv2.putText(frame, 'Bola Longe', (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            # Exibir a contagem de dedos e o status da bolinha
+            cv2.putText(frame, f'Dedos levantados: {dedos_levantados}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, 'Bola Pega!' if status_predito == 1 else 'Bola Longe', (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0) if status_predito == 1 else (0, 0, 255), 2)
 
-    cv2.imshow('Detecção de Mãos e Bola', frame)
+            mp_drawing.draw_landmarks(frame, hand_landmarks)
+
+    cv2.imshow('Detecção de Dedos e Bolinha', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
 cv2.destroyAllWindows()
+

@@ -42,3 +42,4 @@ print(f'Accuracy: {accuracy:.2f}')
 # Salvando o modelo treinado
 joblib.dump(best_model, 'modelo_bolinha.pkl')
 
+

@@ -3,7 +3,6 @@ import cv2
 import mediapipe as mp
 import joblib
 
-# Carregar o modelo treinado
 try:
     modelo = joblib.load('modelo_bolinha.pkl')
 except FileNotFoundError:
@@ -41,21 +40,18 @@ while True:
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
 
-    # Conversão para espaço HSV
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Definindo a faixa de cor azul (ajuste se necessário)
     lower_blue = np.array([100, 150, 0])
     upper_blue = np.array([140, 255, 255])
 
-    # Criando uma máscara para detectar a bolinha azul
     mask = cv2.inRange(hsv_frame, lower_blue, upper_blue)
     bolinha_contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     bolinha_detectada = False
     for contour in bolinha_contours:
         area = cv2.contourArea(contour)
-        if area > 500:  # Ajuste o valor da área se necessário
+        if area > 500: 
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             bolinha_detectada = True
@@ -64,11 +60,9 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks:
             dedos_levantados = contar_dedos(hand_landmarks)
 
-            # Extrair características para prever a bolinha
             features = np.array([[landmark.x, landmark.y, landmark.z] for landmark in hand_landmarks.landmark]).flatten()
             status_predito = modelo.predict([features])[0]
 
-            # Exibir a contagem de dedos e o status da bolinha
             cv2.putText(frame, f'Dedos levantados: {dedos_levantados}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             cv2.putText(frame, 'Bola Pega!' if bolinha_detectada else 'Bola Longe', (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0) if bolinha_detectada else (0, 0, 255), 2)
 

@@ -4,7 +4,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import joblib
 
-# Carregar os dados
 data = np.load('dados_bolinha.npy', allow_pickle=True)
 
 X = []
@@ -19,19 +18,16 @@ y = np.array(y)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Definindo os parâmetros para o GridSearch
 param_grid = {
     'n_estimators': [100, 200],
     'max_depth': [None, 10, 20],
     'min_samples_split': [2, 5]
 }
 
-# Treinando o modelo com Grid Search
 model = RandomForestClassifier(random_state=42)
 grid_search = GridSearchCV(model, param_grid, cv=5)
 grid_search.fit(X_train, y_train)
 
-# Avaliando o modelo
 best_model = grid_search.best_estimator_
 y_pred = best_model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)

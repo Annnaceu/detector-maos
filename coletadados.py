@@ -13,11 +13,9 @@ def contar_dedos(hand_landmarks):
     dedos_levantados = 0
     landmarks = hand_landmarks.landmark
 
-    # Contagem do polegar
     if landmarks[mp_hands.HandLandmark.THUMB_TIP].x > landmarks[mp_hands.HandLandmark.THUMB_IP].x:
         dedos_levantados += 1
 
-    # Contagem dos outros dedos
     dedos = [mp_hands.HandLandmark.INDEX_FINGER_TIP, mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
              mp_hands.HandLandmark.RING_FINGER_TIP, mp_hands.HandLandmark.PINKY_TIP]
     juntas = [mp_hands.HandLandmark.INDEX_FINGER_PIP, mp_hands.HandLandmark.MIDDLE_FINGER_PIP,
@@ -42,10 +40,8 @@ while True:
             dedos = contar_dedos(hand_landmarks)
             mp_drawing.draw_landmarks(frame, hand_landmarks)
 
-            # Simulação do status da bolinha
             status_bola = int(input("A bolinha está perto (1) ou longe (0)? "))
 
-            # Extrair características da mão
             features = np.array([[landmark.x, landmark.y, landmark.z] for landmark in hand_landmarks.landmark]).flatten()
             data.append((features.tolist(), status_bola))
 
@@ -56,7 +52,6 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Salvar os dados coletados em um arquivo
 data = np.array(data, dtype=object)
 np.save('dados_bolinha.npy', data)
 
